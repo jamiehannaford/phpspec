@@ -69,15 +69,25 @@ class PSR0Locator implements ResourceLocatorInterface
 
         $this->srcPath       = rtrim(realpath($srcPath), '/\\').$sepr;
         $this->specPath      = rtrim(realpath($specPath), '/\\').$sepr;
+
         $this->srcNamespace  = ltrim(trim($srcNamespace, ' \\').'\\', '\\');
         $this->psr4Prefix    = (null === $psr4Prefix) ? null : ltrim(trim($psr4Prefix, ' \\').'\\', '\\');
-        if(null !== $this->psr4Prefix  && substr($this->srcNamespace, 0, strlen($psr4Prefix)) !== $psr4Prefix){
+        $this->specNamespace = trim($specNamespacePrefix, ' \\').'\\'.$this->srcNamespace;
+
+        if (null !== $this->psr4Prefix  && substr($this->srcNamespace, 0, strlen($psr4Prefix)) !== $psr4Prefix){
             throw new InvalidArgumentException('PSR4 prefix doesn\'t match given class namespace.' . PHP_EOL);
         }
-        $srcNamespacePath = null === $this->psr4Prefix ? $this->srcNamespace : substr($this->srcNamespace, strlen($this->psr4Prefix));
-        $this->specNamespace = trim($specNamespacePrefix, ' \\').'\\'.$this->srcNamespace;
+
+        if (null === $this->psr4Prefix) {
+            $srcNamespacePath  = $this->srcNamespace;
+            $specNamespacePath = $this->specNamespace;
+        } else {
+            $srcNamespacePath  = substr($this->srcNamespace, strlen($this->psr4Prefix));
+            $specNamespacePath = preg_replace('#' . $this->psr4Prefix . '\$#', '', $this->specNamespace);
+        }
+
         $this->fullSrcPath   = $this->srcPath.str_replace('\\', $sepr, $srcNamespacePath);
-        $this->fullSpecPath  = $this->specPath.str_replace('\\', $sepr, $this->specNamespace);
+        $this->fullSpecPath  = $this->specPath.str_replace('\\', $sepr, $specNamespacePath);
 
         if ($sepr === $this->srcPath) {
             throw new InvalidArgumentException(sprintf(
